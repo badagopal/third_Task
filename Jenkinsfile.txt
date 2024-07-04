@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    bat "docker build -t myapp:${env.BRANCH_NAME} ."
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    bat "docker run --rm myapp:${env.BRANCH_NAME} npm test"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            environment {
+                DOCKER_IMAGE = "myapp:${env.develop}"
+                CONTAINER_NAME = "myapp-${env.develop}"
+            }
+            steps {
+                script {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        bat "docker stop ${CONTAINER_NAME} || true"
+                        bat "docker rm ${CONTAINER_NAME} || true"
+                    }
+                    
+                    bat "docker run -d --name ${CONTAINER_NAME} -p 8080:3000 ${DOCKER_IMAGE}"
+                }
+            }
+        }
+    }
+}
