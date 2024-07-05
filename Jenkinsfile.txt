@@ -1,37 +1,39 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_HUB_CREDENTIAL_ID = 'Docker_01'
+        DOCKER_IMAGE_NAME = 'badagopal/third-task'
+        GIT_REPO_URL = 'https://github.com/badagopal/third_Task.git'
+    }
+
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                script {
-                    bat "docker build -t myapp:${env.BRANCH_NAME} ."
-                }
+                git branch: 'develop', credentialsId: 'docker1', url: 'https://github.com/badagopal/third_Task.git'
             }
         }
 
-        stage('Test') {
+        stage('Build and Push Docker Image') {
             steps {
-                script {
-                    bat "docker run --rm myapp:${env.BRANCH_NAME} npm test"
-                }
+                bat """
+                docker build -t ${DOCKER_IMAGE_NAME} .
+                docker login -u badagopal -p gopalakrishna9999
+                docker push ${DOCKER_IMAGE_NAME}
+                """
             }
         }
 
         stage('Deploy') {
-            environment {
-                DOCKER_IMAGE = "myapp:${env.develop}"
-                CONTAINER_NAME = "myapp-${env.develop}"
+            when {
+                branch 'develop' // Deploy only on the 'develop' branch
             }
             steps {
-                script {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                        bat "docker stop ${CONTAINER_NAME} || true"
-                        bat "docker rm ${CONTAINER_NAME} || true"
-                    }
-                    
-                    bat "docker run -d --name ${CONTAINER_NAME} -p 8080:3000 ${DOCKER_IMAGE}"
-                }
+                bat """
+                docker stop third-task || true
+                docker rm third-task || true
+                docker run -d --name third-task -p 8082:80 ${DOCKER_IMAGE_NAME}
+                """
             }
         }
     }
