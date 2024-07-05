@@ -1,4 +1,11 @@
-FROM nginx:alpine
+# Use an official Nginx runtime as the base image
+FROM nginx:latest
 
+# Copy local code to the container image
+COPY . /usr/share/nginx/html
 
+# Expose port 80 to allow external access to our application
 EXPOSE 80
+
+# Command to start Nginx and keep it running in the background
+CMD ["nginx", "-g", "daemon off;"]
